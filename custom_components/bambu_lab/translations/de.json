@@ -353,6 +353,13 @@
           "cooling": "Kühlung",
           "heating": "Heizung"
         }
+      },
+      "liveview_camera": {
+        "name": "Livebild-Kamera",
+        "state": {
+          "main": "Hauptkamera",
+          "birdseye": "BirdsEye-Kamera"
+        }
       }
     },
     "sensor": {
