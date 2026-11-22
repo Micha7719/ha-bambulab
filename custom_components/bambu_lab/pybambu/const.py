@@ -17,6 +17,7 @@ class Printers(StrEnum):
     P1S = "P1S"
     P2S = "P2S"
     H2C = "H2C"
+    H3C = "H3C"
     H2D = "H2D"
     H2DPRO = "H2DPRO"
     H2S = "H2S"
@@ -66,6 +67,7 @@ class Features(IntEnum):
     HOTEND_RACK = 26,
     ACTIVE_CHAMBER_HEATER = 27,
     AMS_DRYING_SETTINGS = 28,
+    TOP_COVER_SENSOR = 29,
 
 
 class FansEnum(IntEnum):
@@ -74,6 +76,7 @@ class FansEnum(IntEnum):
     CHAMBER = 3,
     HEATBREAK = 4,
     SECONDARY_AUXILIARY = 5,
+    H3C_CHAMBER = 6,
 
 
 class TempEnum(IntEnum):
@@ -162,6 +165,7 @@ CURRENT_STAGE_IDS = {
     75: "heatbed_underside_foreign_object_detection",
     76: "pre_extrusion_before_printing",
     77: "preparing_ams",
+    82: "heatbed_stabilizing",  # H3C: confirmed on-device as heatbed stabilization
     # X1 returns -1 for idle
     -1: "idle",  # DUPLICATED
     # P1 returns 255 for idle
@@ -219,7 +223,8 @@ GCODE_STATE_OPTIONS = [
 SDCARD_STATUS = [
     "missing",
     "normal",
-    "abnormal"
+    "abnormal",
+    "not_applicable",
 ]
 
 SPEED_PROFILE = {
@@ -261,14 +266,16 @@ PRINT_TYPE_OPTIONS = {
 
 AMS_DRYING_MODELS = [
     "AMS 2 Pro",
-    "AMS HT"
+    "AMS HT",
+    "AMS 3H"
 ]
 
 AMS_MODELS = [
     "AMS",
     "AMS Lite",
     "AMS 2 Pro",
-    "AMS HT"
+    "AMS HT",
+    "AMS 3H"
 ]
 
 AMS_MODELS_AND_EXTERNAL_SPOOL = [
@@ -276,6 +283,7 @@ AMS_MODELS_AND_EXTERNAL_SPOOL = [
     "AMS Lite",
     "AMS 2 Pro",
     "AMS HT",
+    "AMS 3H",
     "External Spool"
 ]
 
@@ -285,6 +293,22 @@ def load_dict(filename: str) -> dict:
 
 
 FILAMENT_NAMES = load_dict(Path(__file__).with_name('filaments.json'))
+
+
+def _load_integration_version() -> str:
+    # The publish workflow stamps the release tag into manifest.json, so this
+    # tracks the shipped version automatically. Dev checkouts report 0.0.0.
+    try:
+        return load_dict(Path(__file__).parent.parent / 'manifest.json').get('version', 'unknown')
+    except Exception:
+        return 'unknown'
+
+
+INTEGRATION_VERSION = _load_integration_version()
+
+# Versioned so Bambu can rate limit or block one misbehaving release rather than
+# every ha-bambulab install. Keep the 'ha-bambulab/' prefix stable.
+USER_AGENT = f'ha-bambulab/v{INTEGRATION_VERSION}'
 
 HMS_SEVERITY_LEVELS = {
     "default": "unknown",
@@ -342,6 +366,7 @@ class Print_Flag3_Values(IntEnum):
 class Stat_Flag_Values(IntEnum):
     # Gap
     DOOR_OPEN                           = 0x00800000,
+    TOP_COVER_OPEN                      = 0x01000000,
     # Gap
 
 class BambuUrl(IntEnum):
@@ -360,6 +385,7 @@ class BambuUrl(IntEnum):
     MY_PROFILE = 13,
     POINT_BILL = 14,
     BOOST_RIGHT = 15,
+    FILAMENTS = 16,
 
 BAMBU_URL = {
     BambuUrl.LOGIN: 'https://api.bambulab.com/v1/user-service/user/login',
@@ -367,7 +393,7 @@ BAMBU_URL = {
     BambuUrl.EMAIL_CODE: 'https://api.bambulab.com/v1/user-service/user/sendemail/code',
     BambuUrl.SMS_CODE: 'https://bambulab.cn/api/v1/user-service/user/sendsmscode',
     BambuUrl.BIND: 'https://api.bambulab.com/v1/iot-service/api/user/bind',
-    BambuUrl.SLICER_SETTINGS: 'https://api.bambulab.com/v1/iot-service/api/slicer/setting?version=1.10.0.89',
+    BambuUrl.SLICER_SETTINGS: 'https://api.bambulab.com/v1/iot-service/api/slicer/setting?version=1.10.0.89&public=false',
     BambuUrl.TASKS: 'https://api.bambulab.com/v1/user-service/my/tasks',
     BambuUrl.PROJECTS: 'https://api.bambulab.com/v1/iot-service/api/user/project',
     BambuUrl.PREFERENCE: 'https://api.bambulab.com/v1/design-user-service/my/preference',
@@ -381,6 +407,7 @@ BAMBU_URL = {
     # so ask for the smallest possible page of transactions.
     BambuUrl.POINT_BILL: 'https://api.bambulab.com/v1/point-service/point-bill/my?offset=0&limit=1&filter=all',
     BambuUrl.BOOST_RIGHT: 'https://api.bambulab.com/v1/point-service/boost/boostingright',
+    BambuUrl.FILAMENTS: 'https://api.bambulab.com/v1/design-user-service/my/filament/v2',
 }
 
 # AMS tray `state` — see docs/merge-request-ams-tray-state.md
