@@ -572,14 +572,6 @@ class Camera:
 
         return (old_data != f"{self.__dict__}")
 
-# While nothing is heating, the printer reports ambient temperatures that flip
-# by ±1°C every few seconds. Forwarding every flip floods the Home Assistant
-# recorder (#2228), so when idle we only report a change of at least
-# IDLE_TEMP_DEADBAND, or any change once IDLE_TEMP_REFRESH has passed since the
-# sensor was last reported. While heating, every change is reported.
-IDLE_TEMP_DEADBAND = 2
-IDLE_TEMP_REFRESH = timedelta(minutes=10)
-
     def _update_liveview_cameras(self, ipcam: dict):
         # "ipcam": {
         #   "current_liveview": 4,
@@ -618,6 +610,16 @@ IDLE_TEMP_REFRESH = timedelta(minutes=10)
             return
         command = {"camera": {**SWITCH_LIVEVIEW_CAMERA_TEMPLATE["camera"], "camera_id": camera_id}}
         self._client.publish(command)
+
+
+# While nothing is heating, the printer reports ambient temperatures that flip
+# by ±1°C every few seconds. Forwarding every flip floods the Home Assistant
+# recorder (#2228), so when idle we only report a change of at least
+# IDLE_TEMP_DEADBAND, or any change once IDLE_TEMP_REFRESH has passed since the
+# sensor was last reported. While heating, every change is reported.
+IDLE_TEMP_DEADBAND = 2
+IDLE_TEMP_REFRESH = timedelta(minutes=10)
+
 
 @dataclass
 class Temperature:
